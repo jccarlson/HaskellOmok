@@ -52,13 +52,57 @@ getEveryNthElem _ [] = []
 getEveryNthElem n l  = ((head l):(getEveryNthElem n (drop n l)))
 
 
-mark = False
-isEmpty = False
-isMarked = False
-isMarkedBy = False
-marker = False
-isFull = False
-isWonBy = False
-isDraw = False
-isGameOver = False
-boardToStr = False
+mark :: Int -> Int -> [Char] -> Char -> [Char]
+mark x y bd pl = firstHalf ++ [pl] ++ lastHalf
+               where (firstHalf, (_:lastHalf)) = splitAt ((((y - 1) * (size bd)) + (x - 1))) bd  
+
+isEmpty :: Int -> Int -> [Char] -> Bool
+isEmpty x y bd = ((marker x y bd) == ' ')
+
+isMarked :: Int -> Int -> [Char] -> Bool
+isMarked x y bd = not (isEmpty x y bd)
+
+isMarkedBy :: Int -> Int -> [Char] -> Char -> Bool
+isMarkedBy x y bd pl = ((marker x y bd) == pl)             
+
+marker :: Int -> Int -> [Char] -> Char
+marker x y bd   |  (((y - 1) * (size bd)) + (x - 1)) < 0            = ' '
+                |  (((y - 1) * (size bd)) + (x - 1)) >= (length bd) = ' ' 
+                |  otherwise                                        = head lastHalf
+                where lastHalf = drop ((((y - 1) * (size bd)) + (x - 1))) bd
+
+isFull :: [Char] -> Bool
+isFull []        = True
+isFull (' ':rem) = False 
+isFull (_:rem)   = isFull rem
+
+isWonBy :: [Char] -> Char -> Bool
+isWonBy bd pl = checkRemainingPlaces bd pl ((size bd) * (size bd))
+
+checkRemainingPlaces :: [Char] -> Char -> Int -> Bool
+checkRemainingPlaces bd pl 0            = False
+checkRemainingPlaces bd pl numRemaining = (checkSequence bd pl x y 1 0 5) || (checkSequence bd pl x y 0 1 5) || (checkSequence bd pl x y 1 1 5) || (checkSequence bd pl x y 1 (-1) 5) || (checkRemainingPlaces bd pl (numRemaining - 1))
+                                        where x = (mod (numRemaining - 1)  (size bd)) + 1
+                                              y = (div (numRemaining - 1)  (size bd)) + 1
+
+checkSequence :: [Char] -> Char -> Int -> Int -> Int -> Int -> Int -> Bool
+checkSequence bd pl x y dx dy 0   = True
+checkSequence bd pl x y dx dy rem = (isMarkedBy x y bd pl) && (checkSequence bd pl (x + dx) (y + dy) dx dy (rem - 1))
+
+isDraw :: [Char] -> Bool
+isDraw bd = (isFull bd) && (not (isWonBy bd 'X')) && (not (isWonBy bd 'O'))
+
+isGameOver :: [Char] -> Bool
+isGameOver bd = (isDraw bd) || (isWonBy bd 'X') || (isWonBy bd 'O')
+
+boardToStr :: (Char -> Char) -> [Char] -> [Char]
+boardToStr playerToChar bd = allRowsToStrings playerToChar bd (size bd)
+
+allRowsToStrings :: (Char -> Char) -> [Char] -> Int -> [Char]
+allRowsToStrings playerToChar bd 0       = []
+allRowsToStrings playerToChar bd currRow = (allRowsToStrings playerToChar bd (currRow - 1)) ++ (rowToString playerToChar (row currRow bd)) ++ ['\n'] 
+
+rowToString :: (Char -> Char) -> [Char] -> [Char]
+rowToString _            []      = []
+rowToString playerToChar (h:rem) = [(playerToChar h)] ++ [' '] ++ (rowToString playerToChar rem)
+ 
